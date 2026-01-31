@@ -1,0 +1,330 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f9da64b8-17c6-438b-afb9-b17b6648b1fd",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://172.17.0.1:8080/mcp",
+        "tool": {
+          "__rl": true,
+          "value": "get_cities_livability_report",
+          "mode": "list",
+          "cachedResultName": "get_cities_livability_report"
+        },
+        "parameters": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "country": "usa"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "country",
+              "displayName": "Country",
+              "defaultMatch": false,
+              "required": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "max_cities",
+              "displayName": "Max Cities",
+              "defaultMatch": false,
+              "required": false,
+              "display": true,
+              "type": "number",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1,
+      "position": [
+        368,
+        0
+      ],
+      "id": "087d1b25-b1fd-4359-ba68-32eea919359c",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a city livability analyst. Analyze the following cities data and determine the best city to live based on tech job opportunities\nCities Data:\n{{ JSON.stringify($json.content, null, 2) }}\n\nFormat a response suitable for a mail that present the best cities to live it based on jobs opportunities.\nPuts the top 3 cities with examples of available jobs.\n\nThe mail has to be really short and concise :\n1. You explain its a analysis of best cities for internship in tech.\n2. Give top 3 cities with example of tech jobs.\nThen end the mail has to be really short",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        528,
+        0
+      ],
+      "id": "998c5bf1-f5dc-4eaa-9ba1-23af8ca7b87c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        400,
+        208
+      ],
+      "id": "51354c26-1d9c-4b31-b764-e5a74e751843",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UO6wRfyHCG7l1DHU",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://172.17.0.1:8080/mcp",
+        "tool": {
+          "__rl": true,
+          "value": "generate_livability_csv",
+          "mode": "list",
+          "cachedResultName": "generate_livability_csv"
+        },
+        "parameters": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "report_json": "={{ JSON.stringify($json.content[0].text) }}"
+          },
+          "matchingColumns": [
+            "report_json"
+          ],
+          "schema": [
+            {
+              "id": "report_json",
+              "displayName": "Report Json",
+              "defaultMatch": false,
+              "required": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -160
+      ],
+      "id": "16ac8a8c-478a-46c5-8965-90f0f9fd1026",
+      "name": "MCP Client1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        -160
+      ],
+      "id": "2503237b-2745-4087-bec9-978cf8327a63",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.EMAIL_TO_SEND_RESULT }}",
+        "subject": "What is the best city to live in ?",
+        "emailType": "text",
+        "message": "={{ $('AI Agent').item.json.output }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1312,
+        -160
+      ],
+      "id": "6d42ae09-7a36-409e-9ed8-54abef633e00",
+      "name": "Send a message",
+      "webhookId": "01bd82e1-6367-4d81-a340-2757585cdef4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yCJ2gmGmup9TqFWO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d35bf98-3a32-44e2-8b8c-b92325446408",
+              "name": "sessionId",
+              "value": "={{ Math.random() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "fb26a6c5-1c2b-47d9-9e36-03ff071901e8",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1024,
+        -176
+      ],
+      "id": "fe2c77ef-7c82-473f-b9fc-fceea6f7860e",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MCP Client1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "MCP Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "615764dd-f7c7-48be-9c6b-a2c3c00da95b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d56821483ab7853c5d1bedec3861a2296b350bac7c54a251d76032c3d9cfa80c"
+  },
+  "id": "1-N-HJ8HtOZCgv8Us0ImV",
+  "tags": []
+}
