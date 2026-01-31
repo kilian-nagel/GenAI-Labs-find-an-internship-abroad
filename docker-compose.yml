@@ -1,0 +1,53 @@
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    ports:
+      - 5678:5678
+    environment:
+      - GENERIC_TIMEZONE=Europe/Paris
+      - TZ=Europe/Paris
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    env_file:
+      - .env
+    networks:
+      - n8n-weather
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+
+  weather:
+    build: .
+    ports:
+      - 8080:8080
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - n8n
+      - mongodb
+    env_file:
+      - .env
+    networks:
+      - n8n-weather
+
+volumes:
+  n8n_data:
+    external: true
+  mongo_data:
+
+networks:
+  n8n-weather:
